@@ -27,7 +27,7 @@ class Compound(Base):
     stitch_id = Column(String(255), nullable=False, index=True)
 
     #: Identifier of the flat parent, if this is a stereo entry
-    parent_id = Column(Integer, ForeignKey('{}.id'.format(COMPOUND_TABLE_NAME)), nullable=True)
+    parent_id = Column(Integer, ForeignKey(f'{COMPOUND_TABLE_NAME}.id'), nullable=True)
     children = relationship('Compound', backref=backref('parent', remote_side=[id]))
 
     def __repr__(self):
@@ -35,7 +35,7 @@ class Compound(Base):
 
     def as_bel(self) -> abundance:
         """Returns this compound as an abundance for PyBEL"""
-        return abundance()
+        return abundance(namespace='PUBCHEM', identifier=str(self.pubchem_id))
 
 
 class CompoundSideEffect(Base):

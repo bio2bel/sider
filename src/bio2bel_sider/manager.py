@@ -3,11 +3,12 @@
 import logging
 from collections import defaultdict
 
+import time
 from tqdm import tqdm
 
 from bio2bel import AbstractManager
 from .constants import MODULE_NAME
-from .models import Base, Compound, CompoundSideEffect
+from .models import Base, Compound, CompoundSideEffect, Indication, Umls
 from .parser import get_meddra_df, get_side_effects_df
 
 log = logging.getLogger(__name__)
@@ -16,20 +17,22 @@ log = logging.getLogger(__name__)
 def _convert_flat(stitch_flat_id):
     return "%s" % (abs(int(stitch_flat_id[3:])) - 100000000)
 
+
 def _convert_stereo(stitch_stereo_id):
     return "%s" % abs(int(stitch_stereo_id[3:]))
 
+
 class Manager(AbstractManager):
-    """Manages the SIDER database"""
+    """Manages the SIDER database."""
 
     module_name = MODULE_NAME
-    flask_admin_models = [Compound]
+    flask_admin_models = [Compound, CompoundSideEffect, Umls, Indication]
 
-    def __init__(self, connection=None):
+    def __init__(self, *args, **kwargs):
         """
         :param Optional[str] connection: SQLAlchemy connection string
         """
-        super().__init__(connection)
+        super().__init__(*args, **kwargs)
 
         self.species_cache = {}
         self.gene_cache = {}
@@ -37,8 +40,55 @@ class Manager(AbstractManager):
         self.gene_homologene = {}
 
     @property
-    def base(self):
+    def _base(self):
         return Base
+
+    def is_populated(self):
+        """Check if the database is already populated.
+
+        :rtype: bool
+        """
+        return 0 < self.count_compounds()
+
+    def count_compounds(self):
+        """Count the number of compounds in the database.
+
+        :rtype: int
+        """
+        return self._count_model(Compound)
+
+    def count_side_effects(self):
+        """Count the number of side effects in the database.
+
+        :rtype: int
+        """
+        return self._count_model(CompoundSideEffect)
+
+    def count_indications(self):
+        """Count the number of indications in the database.
+
+        :rtype: int
+        """
+        return self._count_model(Indication)
+
+    def count_umls(self):
+        """Count the number of UMLS entries in the database.
+
+        :rtype: int
+        """
+        return self._count_model(Umls)
+
+    def summarize(self):
+        """Summarize the contents of the database.
+
+        :rtype: dict[str,int]
+        """
+        return dict(
+            compounds=self.count_compounds(),
+            side_effects=self.count_side_effects(),
+            indications=self.count_indications(),
+            umls=self.count_umls(),
+        )
 
     def _populate_meddra(self, url=None):
         """Populates the MedDRA terms in the database
@@ -70,7 +120,7 @@ class Manager(AbstractManager):
         side_effect_df = get_side_effects_df()
 
         log.debug('iterating side effects data frame')
-        it = tqdm(side_effect_df[['STITCH_FLAT_ID','STITCH_STEREO_ID']].itertuples(), total=len(side_effect_df.index))
+        it = tqdm(side_effect_df[['STITCH_FLAT_ID', 'STITCH_STEREO_ID']].itertuples(), total=len(side_effect_df.index))
         for _, stitch_flat_id, stitch_stereo_id in it:
             pubchem_flat_id = _convert_flat(stitch_flat_id)
             pubchem_stereo_id = _convert_stereo(stitch_stereo_id)
@@ -92,9 +142,10 @@ class Manager(AbstractManager):
                 )
                 self.session.add(stereo_model)
 
-
-        log.debug('committing compound models')
+        t = time.time()
+        log.info('committing compound models')
         self.session.commit()
+        log.info('committed compound models in %.2f seconds', time.time() - t)
 
     def _populate_side_effects(self, url=None):
         log.info('getting side effects')
@@ -120,8 +171,12 @@ class Manager(AbstractManager):
 
             e = CompoundSideEffect(
                 pubchem_id=cid_flat,
-
+                # FIXME
             )
+
+            self.session.add(e)
+
+        self.session.commit()
 
     def populate(self, meddra_url=None, side_effects_url=None, indications_url=None):
         """Populates the side effects and indications
