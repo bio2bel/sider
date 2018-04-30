@@ -26,9 +26,9 @@ SIDE_EFFECTS_HEADER = [
     'Source Label',
     'STITCH_FLAT_ID',
     'STITCH_STEREO_ID',
-    'UMLS',
+    'UMLS from Label',
     'MedDRA Concept Type',
-    'MedDRA Concept Type UMLS',
+    'UMLS from MedDRA',
     'Side Effect Name',
 ]
 

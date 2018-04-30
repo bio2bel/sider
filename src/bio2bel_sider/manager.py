@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from collections import defaultdict
-
 import time
+from typing import Optional
+
+import pandas as pd
 from tqdm import tqdm
 
 from bio2bel import AbstractManager
@@ -34,10 +35,15 @@ class Manager(AbstractManager):
         """
         super().__init__(*args, **kwargs)
 
-        self.species_cache = {}
-        self.gene_cache = {}
-        self.homologene_cache = {}
-        self.gene_homologene = {}
+        self.stitch_id_to_compound = {
+            compound.stitch_id: compound
+            for compound in self.session.query(Compound).all()
+        }
+
+        self.cui_to_umls = {
+            umls.cui: umls
+            for umls in self.session.query(Umls).all()
+        }
 
     @property
     def _base(self):
@@ -108,75 +114,68 @@ class Manager(AbstractManager):
         for row in tqdm(df.iterrows(), total=len(df.index)):
             pass
 
-    def _populate_compounds(self):
-        """Done in two steps, using both the indications and the side effects documents"""
+    def get_compound_by_stitch_id(self, stitch_id: str) -> Optional[Compound]:
+        return self.session.query(Compound).filter(Compound.stitch_id == stitch_id).one_or_none()
 
-        log.debug('getting loaded compounds')
-        cid_model = {
-            compound.stitch_id: compound
-            for compound in self.session.query(Compound).all()
-        }
+    def get_or_create_compound(self, stitch_id: str, **kwargs) -> Compound:
+        model = self.stitch_id_to_compound.get(stitch_id)
+        if model is not None:
+            return model
 
-        side_effect_df = get_side_effects_df()
+        model = self.get_compound_by_stitch_id(stitch_id)
+        if model is not None:
+            self.stitch_id_to_compound[stitch_id] = model
+            return model
 
-        log.debug('iterating side effects data frame')
-        it = tqdm(side_effect_df[['STITCH_FLAT_ID', 'STITCH_STEREO_ID']].itertuples(), total=len(side_effect_df.index))
-        for _, stitch_flat_id, stitch_stereo_id in it:
-            pubchem_flat_id = _convert_flat(stitch_flat_id)
-            pubchem_stereo_id = _convert_stereo(stitch_stereo_id)
+        model = self.stitch_id_to_compound[stitch_id] = Compound(stitch_id=stitch_id, **kwargs)
+        self.session.add(model)
+        return model
 
-            flat_model = cid_model.get(stitch_flat_id)
-            if flat_model is None:
-                flat_model = cid_model[stitch_flat_id] = Compound(
-                    stitch_id=stitch_flat_id,
-                    pubchem_id=pubchem_flat_id
-                )
-                self.session.add(flat_model)
+    def get_umls_by_cui(self, cui: str) -> Optional[Umls]:
+        return self.session.query(Umls).filter(Umls.cui == cui).one_or_none()
 
-            stereo_model = cid_model.get(stitch_stereo_id)
-            if stereo_model is None:
-                stereo_model = cid_model[stitch_stereo_id] = Compound(
-                    stitch_id=stitch_stereo_id,
-                    pubchem_id=pubchem_stereo_id,
-                    parent=flat_model
-                )
-                self.session.add(stereo_model)
+    def get_or_create_umls(self, cui: str, **kwargs) -> Umls:
+        model = self.cui_to_umls.get(cui)
+        if model is not None:
+            return model
 
-        t = time.time()
-        log.info('committing compound models')
-        self.session.commit()
-        log.info('committed compound models in %.2f seconds', time.time() - t)
+        model = self.get_umls_by_cui(cui)
+        if model is not None:
+            self.cui_to_umls[cui] = model
+            return model
+
+        model = self.cui_to_umls[cui] = Umls(cui=cui, **kwargs)
+        self.session.add(model)
+        return model
 
     def _populate_side_effects(self, url=None):
-        log.info('getting side effects')
+        """Done in two steps, using both the indications and the side effects documents
+
+        :param Optional[str] url: A custom URL for the side effects data source
+        """
         df = get_side_effects_df(url=url)
 
-        pubchem_to_umls_cids = defaultdict(set)
-        pubchem_to_side_effects = defaultdict(set)
+        log.info('populating side effects')
 
-        it = tqdm(df.iterrows(), total=len(df.index))
-        for source, stitch_flat_id, stitch_stereo_id, umls_on_label, meddra_type, umls_meddra, name in it:
-            pubchem_flat_id = _convert_flat(stitch_flat_id)
-            pubchem_stereo_id = _convert_stereo(stitch_stereo_id)
+        _columns = ['STITCH_FLAT_ID', 'MedDRA Concept Type', 'UMLS from MedDRA', 'Side Effect Name', ]
+        it = tqdm(df[pd.notna('UMLS from MedDRA'), _columns].itertuples(), total=len(df.index), desc='Side effects')
+        for _, stitch_id, meddra_type, cui, side_effect_name in it:
+            pubchem_id = _convert_flat(stitch_id)
+            flat_model = self.get_or_create_compound(stitch_id=stitch_id, pubchem_id=pubchem_id)
+            umls = self.get_or_create_umls(cui=cui, name=side_effect_name)
+            se_flat = CompoundSideEffect(compound=flat_model, side_effect=umls, meddra_type=meddra_type)
 
-            term_type, term_cid, term_name = meddra_type, umls_meddra, name
+            self.session.add(se_flat)
 
-            if term_type != 'PT':
-                continue
+            # Maybe use stereochemistry later?
+            # pubchem_stereo_id = _convert_stereo(stitch_stereo_id)
+            # stereo_model = self.get_or_create_compound(stitch_id=stitch_stereo_id, pubchem_id=pubchem_stereo_id,parent=flat_model)
+            # se_stereo = CompoundSideEffect(compound=stereo_model, side_effect=umls)
 
-            pubchem_to_umls_cids[pubchem_flat_id].add(term_cid)
-            pubchem_to_umls_cids[pubchem_stereo_id].add(term_cid)
-            pubchem_to_side_effects[pubchem_flat_id].add(term_name)
-            pubchem_to_side_effects[pubchem_stereo_id].add(term_name)
-
-            e = CompoundSideEffect(
-                pubchem_id=cid_flat,
-                # FIXME
-            )
-
-            self.session.add(e)
-
+        t = time.time()
+        log.info('committing side effects')
         self.session.commit()
+        log.info('committed side effects in %.2f seconds', time.time() - t)
 
     def populate(self, meddra_url=None, side_effects_url=None, indications_url=None):
         """Populates the side effects and indications
@@ -185,4 +184,4 @@ class Manager(AbstractManager):
         :param Optional[str] side_effects_url:
         :param Optional[str] indications_url:
         """
-        self._populate_compounds()
+        self._populate_side_effects()
