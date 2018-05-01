@@ -31,7 +31,7 @@ def get_indications_df(url=None, cache=True, force_download=False):
     df = pd.read_csv(
         url or INDICATIONS_URL,
         sep='\t',
-        usecols=INDICATIONS_HEADER,
+        names=INDICATIONS_HEADER,
     )
 
     return df
