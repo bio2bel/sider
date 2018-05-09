@@ -48,7 +48,7 @@ Citations
     :target: https://codecov.io/gh/bio2bel/sider?branch=master
     :alt: Coverage Status
 
-.. |documentation| image:: http://readthedocs.org/projects/bio2bel-interpro/badge/?version=latest
+.. |documentation| image:: http://readthedocs.org/projects/bio2bel-sider/badge/?version=latest
     :target: http://bio2bel.readthedocs.io/projects/sider/en/latest/?badge=latest
     :alt: Documentation Status
 
