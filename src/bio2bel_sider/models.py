@@ -2,12 +2,12 @@
 
 """SQLAlchemy models for Bio2BEL SIDER."""
 
-from pybel.constants import DECREASES, INCREASES
-from pybel.dsl import abundance, pathology
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, relationship
 
+from pybel import BELGraph
+from pybel.dsl import abundance, pathology
 from .constants import MODULE_NAME
 
 COMPOUND_TABLE_NAME = f'{MODULE_NAME}_compound'
@@ -40,7 +40,7 @@ class Compound(Base):
 
     def as_bel(self) -> abundance:
         """Return this compound as an abundance for PyBEL."""
-        return abundance(namespace='PUBCHEM', identifier=str(self.pubchem_id))
+        return abundance(namespace='pubchem.compound', identifier=str(self.pubchem_id))
 
 
 class Umls(Base):
@@ -57,8 +57,8 @@ class Umls(Base):
         return self.name
 
     def as_bel(self) -> pathology:
-        """Return this UMLS as an pathology for PyBE.L"""
-        return pathology(namespace='UMLS', name=str(self.name), identifier=str(self.cui))
+        """Return this UMLS as an pathology for PyBEL."""
+        return pathology(namespace='umls', name=str(self.name), identifier=str(self.cui))
 
 
 class MeddraType(Base):
@@ -103,17 +103,11 @@ class SideEffect(Base):
     meddra_type_id = Column(Integer, ForeignKey(f'{MEDDRA_TYPE_TABLE_NAME}.id'), nullable=False)
     meddra_type = relationship(MeddraType)
 
-    def add_to_bel_graph(self, graph):
-        """Add this relationship as an edge to the BEL graph.
-
-        :param pybel.BELGraph graph:
-        :return:
-        :rtype: str
-        """
-        return graph.add_qualified_edge(
+    def add_to_bel_graph(self, graph: BELGraph) -> str:
+        """Add this relationship as an edge to the BEL graph."""
+        return graph.add_increases(
             self.compound.as_bel(),
             self.umls.as_bel(),
-            relation=INCREASES,
             citation='26481350',
             evidence='Extracted from SIDER',
         )
@@ -138,17 +132,11 @@ class Indication(Base):
     detection_id = Column(Integer, ForeignKey(f'{DETECTION_TABLE_NAME}.id'), nullable=False)
     detection = relationship(Detection)
 
-    def add_to_bel_graph(self, graph):
-        """Add this relationship as an edge to the BEL graph.
-
-        :param pybel.BELGraph graph:
-        :return:
-        :rtype: str
-        """
-        return graph.add_qualified_edge(
+    def add_to_bel_graph(self, graph: BELGraph) -> str:
+        """Add this relationship as an edge to the BEL graph."""
+        return graph.add_decreases(
             self.compound.as_bel(),
             self.umls.as_bel(),
-            relation=DECREASES,
             citation='26481350',
             evidence='Extracted from SIDER',
         )

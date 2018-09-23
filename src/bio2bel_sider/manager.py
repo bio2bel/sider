@@ -3,12 +3,15 @@
 """Manager for Bio2BEL SIDER."""
 
 import logging
-from typing import Optional
+from typing import Dict, Mapping, Optional, Type
 
 import time
 from tqdm import tqdm
 
 from bio2bel import AbstractManager
+from bio2bel.manager.bel_manager import BELManagerMixin
+from bio2bel.manager.flask_manager import FlaskMixin
+from pybel import BELGraph
 from .constants import MODULE_NAME
 from .models import Base, Compound, Detection, Indication, MeddraType, SideEffect, Umls
 from .parser import get_indications_df, get_meddra_df, get_side_effects_df
@@ -24,16 +27,13 @@ def _convert_stereo(stitch_stereo_id):
     return str(abs(int(stitch_stereo_id[3:])))
 
 
-class Manager(AbstractManager):
+class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
     """Manages the SIDER database."""
 
     module_name = MODULE_NAME
     flask_admin_models = [Compound, Umls, Indication, SideEffect]
 
     def __init__(self, *args, **kwargs):
-        """
-        :param Optional[str] connection: SQLAlchemy connection string
-        """
         super().__init__(*args, **kwargs)
 
         self.stitch_id_to_compound = {
@@ -60,46 +60,28 @@ class Manager(AbstractManager):
     def _base(self):
         return Base
 
-    def is_populated(self):
-        """Check if the database is already populated.
-
-        :rtype: bool
-        """
+    def is_populated(self) -> bool:
+        """Check if the database is already populated."""
         return 0 < self.count_compounds()
 
-    def count_compounds(self):
-        """Count the number of compounds in the database.
-
-        :rtype: int
-        """
+    def count_compounds(self) -> int:
+        """Count the number of compounds in the database."""
         return self._count_model(Compound)
 
-    def count_side_effects(self):
-        """Count the number of side effects in the database.
-
-        :rtype: int
-        """
+    def count_side_effects(self) -> int:
+        """Count the number of side effects in the database."""
         return self._count_model(SideEffect)
 
-    def count_indications(self):
-        """Count the number of indications in the database.
-
-        :rtype: int
-        """
+    def count_indications(self) -> int:
+        """Count the number of indications in the database."""
         return self._count_model(Indication)
 
-    def count_umls(self):
-        """Count the number of UMLS entries in the database.
-
-        :rtype: int
-        """
+    def count_umls(self) -> int:
+        """Count the number of UMLS entries in the database."""
         return self._count_model(Umls)
 
-    def summarize(self):
-        """Summarize the contents of the database.
-
-        :rtype: dict[str,int]
-        """
+    def summarize(self) -> Mapping[str, int]:
+        """Summarize the contents of the database."""
         return dict(
             compounds=self.count_compounds(),
             side_effects=self.count_side_effects(),
@@ -141,7 +123,7 @@ class Manager(AbstractManager):
         self.session.add(model)
         return model
 
-    def _get_or_create_model(self, d, m, n, i, **kwargs):
+    def _get_or_create_model(self, d: Dict[str, Type[Base]], m: Type[Base], n, i: str, **kwargs) -> Type[Base]:
         model = d.get(i)
         if model is not None:
             return model
@@ -151,20 +133,20 @@ class Manager(AbstractManager):
             d[i] = model
             return model
 
-        model = d[i] = Umls(**{n: i}, **kwargs)
+        model = d[i] = m(**{n: i}, **kwargs)
         self.session.add(model)
         return model
 
-    def get_or_create_detection(self, name):
+    def get_or_create_detection(self, name: str) -> Detection:
         return self._get_or_create_model(self.detections, Detection, 'name', name)
 
-    def get_or_create_meddra_type(self, name):
+    def get_or_create_meddra_type(self, name: str) -> MeddraType:
         return self._get_or_create_model(self.meddra_types, MeddraType, 'name', name)
 
-    def _populate_indications(self, url=None):
+    def _populate_indications(self, url: Optional[str] = None):
         """Populate compound indications.
 
-        :param Optional[str] url: A custom URL for the indications data source
+        :param url: A custom URL for the indications data source
         """
         df = get_indications_df(url=url)
 
@@ -189,12 +171,12 @@ class Manager(AbstractManager):
         self.session.commit()
         log.info('committed indications in %.2f seconds', time.time() - t)
 
-    def _populate_side_effects(self, url=None):
+    def _populate_side_effects(self, url: Optional[str] = None):
         """Populate compound side effects.
 
         Done in two steps, using both the indications and the side effects documents.
 
-        :param Optional[str] url: A custom URL for the side effects data source
+        :param url: A custom URL for the side effects data source
         """
         df = get_side_effects_df(url=url)
 
@@ -224,7 +206,7 @@ class Manager(AbstractManager):
         self.session.commit()
         log.info('committed side effects in %.2f seconds', time.time() - t)
 
-    def _populate_meddra(self, url=None):
+    def _populate_meddra(self, url: Optional[str] = None):
         """Populates the MedDRA terms in the database
 
         From http://sideeffects.embl.de/media/download/README, this file should have the following columns:
@@ -234,7 +216,7 @@ class Manager(AbstractManager):
         3. kind of term (from MedDRA e.g. PT = preferred term)
         4. name of side effect
 
-        :param Optional[str] url: The URL for the meddra.tsv file
+        :param url: The URL for the meddra.tsv file
         """
         log.info('getting MedDRA data')
         df = get_meddra_df(url=url)
@@ -242,11 +224,25 @@ class Manager(AbstractManager):
         for row in tqdm(df.iterrows(), total=len(df.index)):
             pass
 
-    def populate(self, side_effects_url=None, indications_url=None):
+    def populate(self, side_effects_url: Optional[str] = None, indications_url: Optional[str] = None):
         """Populate the side effects and indications from SIDER.
 
-        :param Optional[str] side_effects_url:
-        :param Optional[str] indications_url:
+        :param side_effects_url:
+        :param indications_url:
         """
         self._populate_indications(url=indications_url)
         self._populate_side_effects(url=side_effects_url)
+
+    def to_bel(self) -> BELGraph:
+        graph = BELGraph(
+            name='Side Effect Resource (SIDER)',
+            version='1.0.0',
+        )
+
+        for side_effect in tqdm(self._get_query(SideEffect), total=self.count_side_effects(), desc='side effects'):
+            side_effect.add_to_bel_graph(graph)
+
+        for indication in tqdm(self._get_query(Indication), total=self.count_indications(), desc='indications'):
+            indication.add_to_bel_graph(graph)
+
+        return graph
