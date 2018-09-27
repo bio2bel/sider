@@ -35,7 +35,7 @@ class Compound(Base):
     parent_id = Column(Integer, ForeignKey(f'{COMPOUND_TABLE_NAME}.id'), nullable=True)
     children = relationship('Compound', backref=backref('parent', remote_side=[id]))
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return f'pubchem.compound:{self.pubchem_id}'
 
     def as_bel(self) -> abundance:
@@ -53,7 +53,7 @@ class Umls(Base):
     cui = Column(String(255), nullable=False, index=True)
     name = Column(String(255), nullable=False, index=True)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return self.name
 
     def as_bel(self) -> pathology:
@@ -70,7 +70,7 @@ class MeddraType(Base):
 
     name = Column(String(255), nullable=False, index=True)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return self.name
 
 
@@ -83,7 +83,7 @@ class Detection(Base):
 
     name = Column(String(255), nullable=False, index=True)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return self.name
 
 

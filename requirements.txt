@@ -1,8 +1,0 @@
-pybel>=0.12.1
-bio2bel>=0.1.5
-click
-pandas
-sqlalchemy
-tqdm
-flask[web]
-flask_admin[web]

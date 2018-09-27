@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""This module builds a :mod:`Flask` application for interacting with the underlying database. When installing,
-use the web extra like:
+"""This module builds a :mod:`Flask` application for interacting with the underlying database.
+
+When installing, use the web extra like:
 
 .. source-code:: sh
 

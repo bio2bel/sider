@@ -15,7 +15,7 @@ or from the latest code on `GitHub <https://github.com/bio2bel/sider>`_ with:
 
 .. code-block:: sh
 
-    $ python3 -m pip install git+https://github.com/bio2bel/sider.git@master
+    $ python3 -m pip install git+https://github.com/bio2bel/sider.git
 
 Setup
 -----

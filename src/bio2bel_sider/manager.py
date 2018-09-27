@@ -3,9 +3,9 @@
 """Manager for Bio2BEL SIDER."""
 
 import logging
+import time
 from typing import Dict, Mapping, Optional, Type
 
-import time
 from tqdm import tqdm
 
 from bio2bel import AbstractManager
@@ -33,7 +33,7 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
     module_name = MODULE_NAME
     flask_admin_models = [Compound, Umls, Indication, SideEffect]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D107
         super().__init__(*args, **kwargs)
 
         self.stitch_id_to_compound = {
@@ -90,9 +90,11 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         )
 
     def get_compound_by_stitch_id(self, stitch_id: str) -> Optional[Compound]:
+        """Get a compound by its STITCH identifier, if it exists."""
         return self.session.query(Compound).filter(Compound.stitch_id == stitch_id).one_or_none()
 
     def get_or_create_compound(self, stitch_id: str, **kwargs) -> Compound:
+        """Get a compound by its STITCH identifier, or create one if it doesn't exist."""
         model = self.stitch_id_to_compound.get(stitch_id)
         if model is not None:
             return model
@@ -107,9 +109,11 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         return model
 
     def get_umls_by_cui(self, cui: str) -> Optional[Umls]:
+        """Get a UMLS by its CUI, if it exists."""
         return self.session.query(Umls).filter(Umls.cui == cui).one_or_none()
 
     def get_or_create_umls(self, cui: str, **kwargs) -> Umls:
+        """Get a UMLS by its CUI, or create one if it does not exist."""
         model = self.cui_to_umls.get(cui)
         if model is not None:
             return model
@@ -138,9 +142,11 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         return model
 
     def get_or_create_detection(self, name: str) -> Detection:
+        """Get a detection by its name, or create one if it doesn't exist."""
         return self._get_or_create_model(self.detections, Detection, 'name', name)
 
     def get_or_create_meddra_type(self, name: str) -> MeddraType:
+        """Get a MedDRA type by its name, or create one if it doesn't exit."""
         return self._get_or_create_model(self.meddra_types, MeddraType, 'name', name)
 
     def _populate_indications(self, url: Optional[str] = None):
@@ -198,7 +204,8 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
 
             # Maybe use stereochemistry later?
             # pubchem_stereo_id = _convert_stereo(stitch_stereo_id)
-            # stereo_model = self.get_or_create_compound(stitch_id=stitch_stereo_id, pubchem_id=pubchem_stereo_id,parent=flat_model)
+            # stereo_model = self.get_or_create_compound(stitch_id=stitch_stereo_id,
+            #                                            pubchem_id=pubchem_stereo_id,parent=flat_model)
             # se_stereo = CompoundSideEffect(compound=stereo_model, side_effect=umls)
 
         t = time.time()
@@ -207,7 +214,7 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         log.info('committed side effects in %.2f seconds', time.time() - t)
 
     def _populate_meddra(self, url: Optional[str] = None):
-        """Populates the MedDRA terms in the database
+        """Populate the MedDRA terms in the database.
 
         From http://sideeffects.embl.de/media/download/README, this file should have the following columns:
 
@@ -234,6 +241,7 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         self._populate_side_effects(url=side_effects_url)
 
     def to_bel(self) -> BELGraph:
+        """Serialize SIDER to BEL."""
         graph = BELGraph(
             name='Side Effect Resource (SIDER)',
             version='1.0.0',

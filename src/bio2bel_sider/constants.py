@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Constants for Bio2BEL SIDER."""
+
 import os
 
 from bio2bel import get_data_dir
