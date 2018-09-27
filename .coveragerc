@@ -1,0 +1,17 @@
+[run]
+branch = True
+source = bio2bel_sider
+omit =
+    tests/*
+    docs/*
+
+[paths]
+source =
+    src/bio2bel_sider/
+    .tox/*/lib/python*/site-packages/bio2bel_sider/
+
+[report]
+show_missing = True
+exclude_lines =
+    def __str__
+    def __repr__

@@ -14,7 +14,7 @@ __all__ = [
     'get_side_effects_df',
 ]
 
-get_indications_df = make_df_getter(INDICATIONS_URL, INDICATIONS_PATH, sep='\t', name=INDICATIONS_HEADER)
+get_indications_df = make_df_getter(INDICATIONS_URL, INDICATIONS_PATH, sep='\t', names=INDICATIONS_HEADER)
 
 get_meddra_df = make_df_getter(MEDDRA_URL, MEDDRA_PATH, sep='\t', names=MEDDRA_HEADER)
 
