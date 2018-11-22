@@ -27,6 +27,22 @@ def _convert_stereo(stitch_stereo_id):
     return str(abs(int(stitch_stereo_id[3:])))
 
 
+INDICATIONS_COLUMNS = [
+    'STITCH_FLAT_ID',
+    'Method of Detection',
+    'MedDRA Concept Type',
+    'UMLS CUI from MedDRA',
+    'MedDRA Concept name',
+]
+
+SIDE_EFFECTS_COLUMNS = [
+    'STITCH_FLAT_ID',
+    'MedDRA Concept Type',
+    'UMLS CUI from MedDRA',
+    'MedDRA Concept name',
+]
+
+
 class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
     """Manages the SIDER database."""
 
@@ -36,25 +52,10 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
     def __init__(self, *args, **kwargs):  # noqa: D107
         super().__init__(*args, **kwargs)
 
-        self.stitch_id_to_compound = {
-            compound.stitch_id: compound
-            for compound in self._list_model(Compound)
-        }
-
-        self.cui_to_umls = {
-            umls.cui: umls
-            for umls in self._list_model(Umls)
-        }
-
-        self.meddra_types = {
-            meddra_type.name: meddra_type
-            for meddra_type in self._list_model(MeddraType)
-        }
-
-        self.detections = {
-            detection.name: detection
-            for detection in self._list_model(Detection)
-        }
+        self.stitch_id_to_compound = {}
+        self.cui_to_umls = {}
+        self.meddra_types = {}
+        self.detections = {}
 
     @property
     def _base(self):
@@ -154,14 +155,11 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
 
         :param url: A custom URL for the indications data source
         """
-        df = get_indications_df(url=url)
-
+        indications_df = get_indications_df(url=url)
+        indications_df = indications_df.loc[indications_df['UMLS CUI from MedDRA'].notna(), INDICATIONS_COLUMNS]
         log.info('populating indications effects')
 
-        _columns = ['STITCH_FLAT_ID', 'Method of Detection', 'MedDRA Concept Type', 'UMLS CUI from MedDRA',
-                    'MedDRA concept name']
-        df = df.loc[df['UMLS CUI from MedDRA'].notna(), _columns]
-        it = tqdm(df.itertuples(), total=len(df.index), desc='Indications')
+        it = tqdm(indications_df.itertuples(), total=len(indications_df.index), desc='Indications')
         for _, stitch_id, detection, meddra_type, cui, concept_name in it:
             pubchem_id = _convert_flat(stitch_id)
             se_flat = Indication(
@@ -184,13 +182,11 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
 
         :param url: A custom URL for the side effects data source
         """
-        df = get_side_effects_df(url=url)
+        side_effects_df = get_side_effects_df(url=url)
+        side_effects_df = side_effects_df.loc[side_effects_df['UMLS CUI from MedDRA'].notna(), SIDE_EFFECTS_COLUMNS]
 
         log.info('populating side effects')
-
-        _columns = ['STITCH_FLAT_ID', 'MedDRA Concept Type', 'UMLS from MedDRA', 'MedDRA Concept name', ]
-        df = df.loc[df['UMLS from MedDRA'].notna(), _columns]
-        it = tqdm(df.itertuples(), total=len(df.index), desc='Side Effects')
+        it = tqdm(side_effects_df.itertuples(), total=len(side_effects_df.index), desc='Side Effects')
         for _, stitch_id, meddra_type, cui, side_effect_name in it:
             pubchem_id = _convert_flat(stitch_id)
 
