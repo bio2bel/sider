@@ -48,5 +48,5 @@ FREQUENCY_PATH = os.path.join(DATA_DIR, 'meddra_freq.tsv.gz')
 FREQUENCY_HEADER = [
     'STITCH_FLAT_ID',
     'STITCH_STEREO_ID',
-    ...
+    # TODO finish
 ]
