@@ -40,8 +40,8 @@ Citations
 ---------
 - Kuhn, M., *et al.* (2016). `The SIDER database of drugs and side effects <https://doi.org/10.1093/nar/gkv1075>`_. Nucleic Acids Research, 44(D1), D1075–D1079.
 
-.. |build| image:: https://travis-ci.org/bio2bel/sider.svg?branch=master
-    :target: https://travis-ci.org/bio2bel/sider
+.. |build| image:: https://travis-ci.com/bio2bel/sider.svg?branch=master
+    :target: https://travis-ci.com/bio2bel/sider
     :alt: Build Status
 
 .. |coverage| image:: https://codecov.io/gh/bio2bel/sider/coverage.svg?branch=master
