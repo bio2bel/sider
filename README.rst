@@ -1,5 +1,5 @@
-Bio2BEL SIDER |build| |coverage| |documentation|
-================================================
+Bio2BEL SIDER |build| |coverage| |documentation| |zenodo|
+=========================================================
 Converts the Side Effect Resource (SIDER) to BEL.
 
 Installation |pypi_version| |python_versions| |pypi_license|
@@ -64,3 +64,6 @@ Citations
 
 .. |pypi_license| image:: https://img.shields.io/pypi/l/bio2bel_sider.svg
     :alt: MIT License
+    
+.. |zenodo| image:: https://zenodo.org/badge/129140922.svg
+    :target: https://zenodo.org/badge/latestdoi/129140922
