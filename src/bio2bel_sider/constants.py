@@ -43,6 +43,13 @@ INDICATIONS_HEADER = [
     'MedDRA Concept name',
 ]
 
+DRUG_NAMES_URL = 'http://sideeffects.embl.de/media/download/drug_names.tsv'
+DRUG_NAMES_PATH = os.path.join(DATA_DIR, 'drug_names.tsv')
+DRUG_NAMES_HEADER = [
+    'STITCH_FLAT_ID',
+    'Drug Name',
+]
+
 FREQUENCY_URL = 'http://sideeffects.embl.de/media/download/meddra_freq.tsv.gz'
 FREQUENCY_PATH = os.path.join(DATA_DIR, 'meddra_freq.tsv.gz')
 FREQUENCY_HEADER = [

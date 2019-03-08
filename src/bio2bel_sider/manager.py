@@ -15,17 +15,9 @@ from pybel import BELGraph
 from .constants import MODULE_NAME
 from .models import Base, Compound, Detection, Indication, MeddraType, SideEffect, Umls
 from .parser import get_indications_df, get_meddra_df, get_side_effects_df
+from .utils import convert_flat_stitch_id_to_pubchem_cid
 
 log = logging.getLogger(__name__)
-
-
-def _convert_flat(stitch_flat_id):
-    return str(abs(int(stitch_flat_id[3:])) - 100000000)
-
-
-def _convert_stereo(stitch_stereo_id):
-    return str(abs(int(stitch_stereo_id[3:])))
-
 
 INDICATIONS_COLUMNS = [
     'STITCH_FLAT_ID',
@@ -161,7 +153,7 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
 
         it = tqdm(indications_df.itertuples(), total=len(indications_df.index), desc='Indications')
         for _, stitch_id, detection, meddra_type, cui, concept_name in it:
-            pubchem_id = _convert_flat(stitch_id)
+            pubchem_id = convert_flat_stitch_id_to_pubchem_cid(stitch_id)
             se_flat = Indication(
                 compound=self.get_or_create_compound(stitch_id=stitch_id, pubchem_id=pubchem_id),
                 umls=self.get_or_create_umls(cui=cui, name=concept_name),
@@ -188,7 +180,7 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         log.info('populating side effects')
         it = tqdm(side_effects_df.itertuples(), total=len(side_effects_df.index), desc='Side Effects')
         for _, stitch_id, meddra_type, cui, side_effect_name in it:
-            pubchem_id = _convert_flat(stitch_id)
+            pubchem_id = convert_flat_stitch_id_to_pubchem_cid(stitch_id)
 
             se_flat = SideEffect(
                 compound=self.get_or_create_compound(stitch_id=stitch_id, pubchem_id=pubchem_id),
