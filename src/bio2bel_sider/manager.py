@@ -36,9 +36,11 @@ SIDE_EFFECTS_COLUMNS = [
 
 
 class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
-    """Manages the SIDER database."""
+    """Drugs' side effects and indications."""
 
+    _base = Base
     module_name = MODULE_NAME
+    edge_model = [Indication, SideEffect]
     flask_admin_models = [Compound, Umls, Indication, SideEffect]
 
     def __init__(self, *args, **kwargs):  # noqa: D107
@@ -48,10 +50,6 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
         self.cui_to_umls = {}
         self.meddra_types = {}
         self.detections = {}
-
-    @property
-    def _base(self):
-        return Base
 
     def is_populated(self) -> bool:
         """Check if the database is already populated."""
