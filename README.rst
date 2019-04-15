@@ -64,6 +64,6 @@ Citations
 
 .. |pypi_license| image:: https://img.shields.io/pypi/l/bio2bel_sider.svg
     :alt: MIT License
-    
+
 .. |zenodo| image:: https://zenodo.org/badge/129140922.svg
     :target: https://zenodo.org/badge/latestdoi/129140922
