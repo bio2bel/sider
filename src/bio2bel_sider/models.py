@@ -35,13 +35,13 @@ class Compound(Base):
     children = relationship('Compound', backref=backref('parent', remote_side=[id]))
 
     def __repr__(self):  # noqa: D105
-        return f'pubchem:{self.pubchem_id}'
+        return f'pubchem.compound:{self.pubchem_id}'
 
     def as_bel(self) -> pybel.dsl.Abundance:
         """Return this compound as an abundance for PyBEL."""
         return pybel.dsl.Abundance(
             namespace='pubchem.compound',
-            identifier=str(self.pubchem_id),
+            identifier=self.pubchem_id,
         )
 
 
