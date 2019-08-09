@@ -40,7 +40,7 @@ class Compound(Base):
     def as_bel(self) -> pybel.dsl.Abundance:
         """Return this compound as an abundance for PyBEL."""
         return pybel.dsl.Abundance(
-            namespace='pubchem',
+            namespace='pubchem.compound',
             identifier=str(self.pubchem_id),
         )
 
