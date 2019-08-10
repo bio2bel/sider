@@ -233,10 +233,12 @@ class Manager(AbstractManager, BELManagerMixin, FlaskMixin):
             version='1.0.0',
         )
 
-        for side_effect in tqdm(self._get_query(SideEffect), total=self.count_side_effects(), desc='side effects'):
+        it = tqdm(self._get_query(SideEffect), total=self.count_side_effects(), desc='Mapping side effects to BEL')
+        for side_effect in it:
             side_effect.add_to_bel_graph(graph)
 
-        for indication in tqdm(self._get_query(Indication), total=self.count_indications(), desc='indications'):
+        it = tqdm(self._get_query(Indication), total=self.count_indications(), desc='Mapping indications to BEL')
+        for indication in it:
             indication.add_to_bel_graph(graph)
 
         return graph
