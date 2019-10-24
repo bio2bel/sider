@@ -55,5 +55,12 @@ FREQUENCY_PATH = os.path.join(DATA_DIR, 'meddra_freq.tsv.gz')
 FREQUENCY_HEADER = [
     'STITCH_FLAT_ID',
     'STITCH_STEREO_ID',
-    # TODO finish
+    'UMLS CUI from Label',
+    'Type of effect',
+    'Frequency description',
+    'Frequency lower bound',
+    'Frequency upper bound',
+    'MedDRA Concept Type',  # (LLT=lowest level term, PT=preferred term; in a few cases the term is neither LLT nor PT)
+    'UMLS CUI from MedDRA',
+    'MedDRA Concept name',
 ]
